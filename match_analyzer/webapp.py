@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from . import data
+from . import data, journal as jr
 from .service import analyze_fixtures, load_strategy
 from .strategy import LABEL, MARKET_OF
 
@@ -73,9 +73,23 @@ def build_payload(sel: pd.DataFrame, strategy, cfg: dict, now: pd.Timestamp | No
     }
 
 
+def journal_payload(j: pd.DataFrame, limit: int = 400) -> dict:
+    items = []
+    for _, r in j.sort_values(["date", "time"], ascending=False).head(limit).iterrows():
+        day, time = _moscow(r["date"], r["time"])
+        items.append({
+            "date": day, "time": time, "league": r["league"], "home": r["home"], "away": r["away"],
+            "selection": r["selection"], "label": LABEL.get(r["selection"], r["selection"]),
+            "price": _num(r["price"], 2), "p": _num(r["p"]), "edge": _num(r["edge"]), "stake": _num(r["stake"]),
+            "status": r["status"], "score": r["score"] or "", "units": _num(r["units"]),
+        })
+    return {"summary": jr.summary(j), "items": items}
+
+
 def build_site(out_dir: str | Path, leagues: list[str], strategy_file: str | None,
                history: pd.DataFrame | None = None, fixtures: pd.DataFrame | None = None,
-               seasons: int = 3) -> dict:
+               seasons: int = 3, journal_path: str | Path | None = None,
+               now: pd.Timestamp | None = None) -> dict:
     strategy, cfg = load_strategy(strategy_file)
     if history is None:
         history = data.load_history(leagues, data.previous_seasons(seasons), verbose=False)
@@ -83,6 +97,13 @@ def build_site(out_dir: str | Path, leagues: list[str], strategy_file: str | Non
         fixtures = data.load_fixtures(leagues)
     sel = analyze_fixtures(history, fixtures) if not fixtures.empty else pd.DataFrame()
     payload = build_payload(sel, strategy, cfg)
+    if journal_path:
+        j = jr.load(journal_path)
+        j = jr.settle(j, history)
+        if not sel.empty:
+            j = jr.add_bets(j, strategy.select(sel), now=now)
+        jr.save(j, journal_path)
+        payload["journal"] = journal_payload(j)
     out = Path(out_dir)
     if out.exists():
         shutil.rmtree(out)

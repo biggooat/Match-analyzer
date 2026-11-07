@@ -5,3 +5,4 @@ __pycache__/
 /best_strategy.json
 .venv/
 _site/
+!journal/bets.csv

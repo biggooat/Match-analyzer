@@ -1,5 +1,5 @@
 // Офлайн-режим: сначала сеть, при отсутствии связи — последняя сохранённая версия.
-const CACHE = "ma-v1";
+const CACHE = "ma-v2";
 const SHELL = ["./", "index.html", "style.css", "app.js", "manifest.webmanifest", "icon.svg"];
 
 self.addEventListener("install", (e) => {

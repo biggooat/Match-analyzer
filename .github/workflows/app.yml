@@ -80,6 +80,15 @@ jobs:
           python -m match_analyzer site --out _site --leagues $LEAGUES $TG \
             --app-url "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/"
 
+      - name: Сохранить журнал ставок
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add journal/bets.csv 2>/dev/null || exit 0
+          git diff --cached --quiet && exit 0
+          git commit -m "Журнал ставок: обновление"
+          for i in 1 2 3; do git pull --rebase -X theirs && git push && break; sleep 5; done
+
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site

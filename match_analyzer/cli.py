@@ -194,6 +194,25 @@ def cmd_notify(args) -> None:
             send(token, c.strip(), text)
 
 
+def _demo_journal(history: pd.DataFrame) -> str:
+    """Журнал для демо: ставки на несколько прошлых туров с уже известными результатами."""
+    import tempfile
+    from . import journal as jr
+    from .service import analyze_fixtures
+    path = Path(tempfile.gettempdir()) / "match_analyzer_demo_journal.csv"
+    path.unlink(missing_ok=True)
+    j = jr.load(path)
+    strat = Strategy(min_edge=0.03, min_prob=0.0)
+    for day in sorted(history["date"].unique())[-8:]:
+        past, rnd = history[history["date"] < day], history[history["date"] == day].copy()
+        rnd["time"] = "15:00"
+        sel = analyze_fixtures(past, rnd.assign(hg=float("nan"), ag=float("nan")))
+        j = jr.add_bets(j, strat.select(sel), now=pd.Timestamp(day, tz="Europe/London") - pd.Timedelta(days=1))
+    j = jr.settle(j, history)
+    jr.save(j, path)
+    return str(path)
+
+
 def cmd_site(args) -> None:
     """Собирает веб-приложение (папка со страницей и свежим data.json)."""
     from .webapp import build_site
@@ -209,7 +228,9 @@ def cmd_site(args) -> None:
         fixtures["date"] = fixtures["date"].map({days[0]: today, days[1]: today + pd.Timedelta(days=1)})
         fixtures["time"] = "19:30"
         fixtures[["hg", "ag"]] = float("nan")
-    payload = build_site(args.out, leagues, args.strategy_file, history=history, fixtures=fixtures)
+        args.journal = _demo_journal(history)
+    payload = build_site(args.out, leagues, args.strategy_file, history=history, fixtures=fixtures,
+                         journal_path=args.journal)
     n_bets = sum(1 for m in payload["matches"] if m["bet"])
     print(f"Приложение собрано в {args.out}: матчей {len(payload['matches'])}, ставок {n_bets}")
     if args.telegram:
@@ -273,6 +294,7 @@ def main(argv=None) -> None:
     p.add_argument("--leagues", nargs="+", default=list(data.LEAGUES))
     p.add_argument("--strategy-file", default="strategy/best_strategy.json")
     p.add_argument("--out", default="_site")
+    p.add_argument("--journal", default="journal/bets.csv", help="CSV журнала ставок")
     p.add_argument("--demo", action="store_true", help="демо-данные без интернета")
     p.add_argument("--telegram", action="store_true", help="если заданы секреты — короткое уведомление")
     p.add_argument("--app-url", help="ссылка на приложение для уведомления")
