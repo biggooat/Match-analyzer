@@ -1,0 +1,30 @@
+{
+  "markets": [
+    "1X2"
+  ],
+  "min_edge": 0.04,
+  "min_odds": 1.3,
+  "max_odds": 2.2,
+  "market_weight": 0.7,
+  "min_prob": 0.35,
+  "robust": false,
+  "updated": "2026-11-07",
+  "stats": {
+    "test_bets": 8,
+    "test_roi": 0.285,
+    "test_max_dd_units": 3.0,
+    "bets": 135,
+    "roi": 0.07096296296296295,
+    "hit_rate": 0.5555555555555556,
+    "final_bank": 1087.7814005111488,
+    "max_dd_bank": 0.13380088305278587,
+    "holdout_from": "2025-05-15",
+    "leagues": [
+      "E0",
+      "D1",
+      "SP1",
+      "I1",
+      "F1"
+    ]
+  }
+}
