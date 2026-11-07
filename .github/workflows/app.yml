@@ -49,8 +49,19 @@ jobs:
           key: football-data-${{ github.run_id }}
           restore-keys: football-data-
 
+      - name: Нужна ли перепроверка стратегии
+        id: need
+        run: |
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import json, os
+          path = "strategy/best_strategy.json"
+          cfg = json.load(open(path)) if os.path.exists(path) else {}
+          done = sorted(cfg.get("stats", {}).get("leagues", []))
+          print("report=" + ("true" if done != sorted(os.environ["LEAGUES"].split()) else "false"))
+          PY
+
       - name: Перепроверить стратегию
-        if: github.event.schedule == '13 4 * * 1' || inputs.report || hashFiles('strategy/best_strategy.json') == ''
+        if: github.event.schedule == '13 4 * * 1' || inputs.report || steps.need.outputs.report == 'true'
         run: |
           if [ -n "$TELEGRAM_BOT_TOKEN" ]; then FLAG=""; else FLAG="--dry-run"; fi
           python -m match_analyzer notify report --leagues $LEAGUES $FLAG
