@@ -125,7 +125,7 @@ function renderStrategy() {
 function renderFilters() {
   const el = $("#filters");
   if (state.tab === "strategy") { el.innerHTML = ""; return; }
-  const codes = [...new Set(state.data.matches.map((m) => m.league))];
+  const codes = [...new Set(state.data.matches.map((m) => m.league))].sort((a, b) => leagueName(a).localeCompare(leagueName(b), "ru"));
   if (state.league !== "all" && !codes.includes(state.league)) state.league = "all";
   const chip = (code, label) => `<button class="chip" data-league="${esc(code)}" aria-pressed="${state.league === code}">${esc(label)}</button>`;
   el.innerHTML = codes.length > 1 ? chip("all", "Все лиги") + codes.map((c) => chip(c, leagueName(c))).join("") : "";
@@ -162,6 +162,14 @@ $("#filters").addEventListener("click", (e) => {
   if (!b) return;
   state.league = b.dataset.league; savePrefs(); render();
 });
+// колесо мыши прокручивает ленту лиг по горизонтали
+$("#filters").addEventListener("wheel", (e) => {
+  const el = e.currentTarget;
+  if (el.scrollWidth > el.clientWidth && Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+    el.scrollLeft += e.deltaY;
+    e.preventDefault();
+  }
+}, { passive: false });
 document.addEventListener("visibilitychange", () => { if (!document.hidden) load(); });
 
 loadPrefs();

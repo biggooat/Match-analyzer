@@ -56,6 +56,10 @@ body {
   scrollbar-width: none;
 }
 .filters::-webkit-scrollbar { display: none; }
+/* компьютер с мышью: лиги переносятся на новые строки, прокрутка не нужна */
+@media (hover: hover) and (pointer: fine) {
+  .filters { flex-wrap: wrap; overflow: visible; }
+}
 .chip {
   flex: none; border: 1px solid var(--line); background: var(--card); color: var(--text);
   border-radius: 999px; padding: 5px 12px; font: inherit; font-size: 13px; cursor: pointer;
