@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from dataclasses import replace
 from pathlib import Path
@@ -11,8 +12,8 @@ import pandas as pd
 
 from . import data
 from .backtest import breakdown, optimize, simulate, summarize, walk_forward
-from .model import PoissonModel
-from .strategy import LABEL, Strategy, build_selections, predict_matches
+from .service import fetch_upcoming, load_strategy, tips_message, upcoming_bets, weekly_report
+from .strategy import LABEL, Strategy
 
 pd.set_option("display.width", 200)
 pd.set_option("display.max_columns", 30)
@@ -151,24 +152,11 @@ def cmd_predict(args) -> None:
         fixtures = data.load_local([args.fixtures])
     else:
         fixtures = data.load_fixtures(args.leagues)
-    if fixtures.empty:
+    bets, n = upcoming_bets(history, fixtures, strat)
+    if n == 0:
         print("Нет ближайших матчей с коэффициентами для выбранных лиг.")
         return
-    out = []
-    for league, fx in fixtures.groupby("league"):
-        hist = history[history["league"] == league] if not args.demo else history
-        if hist.empty:
-            print(f"[!] нет истории для {league}")
-            continue
-        model = PoissonModel().fit(hist, ref_date=fx["date"].min())
-        sel = build_selections(fx, predict_matches(model, fx))
-        sel["won"] = float("nan")
-        out.append(sel)
-    if not out:
-        return
-    sel = pd.concat(out, ignore_index=True)
-    bets = strat.select(sel)
-    print(f"\nПроанализировано матчей: {sel[['date', 'home', 'away']].drop_duplicates().shape[0]}")
+    print(f"\nПроанализировано матчей: {n}")
     if bets.empty:
         print("Подходящих ставок нет — это нормально: лучше пропустить, чем играть без перевеса.")
         return
@@ -179,6 +167,37 @@ def cmd_predict(args) -> None:
                                 "price": "кэф", "p": "вероятность", "market_p": "рынок", "edge": "перевес"})
     view["дата"] = view["дата"].dt.strftime("%d.%m")
     print(view.to_string(index=False, float_format=lambda x: f"{x:.3f}"))
+
+
+def _env(name: str, required: bool = True) -> str | None:
+    val = os.environ.get(name, "").strip()
+    if required and not val:
+        sys.exit(f"Не задана переменная окружения {name}")
+    return val or None
+
+
+def cmd_notify(args) -> None:
+    """Разовая отправка в Telegram (для GitHub Actions по расписанию)."""
+    from .telegram import send
+    token, chat = _env("TELEGRAM_BOT_TOKEN"), _env("TELEGRAM_CHAT_ID")
+    leagues = [x.upper() for x in args.leagues]
+    if args.kind == "report":
+        text = weekly_report(leagues, args.last, args.strategy_file)
+    else:
+        strat, cfg = load_strategy(args.strategy_file)
+        bets, n = fetch_upcoming(leagues, strat)
+        text = tips_message(bets, n, cfg)
+    print(text)
+    if not args.dry_run:
+        for c in chat.split(","):
+            send(token, c.strip(), text)
+
+
+def cmd_bot(args) -> None:
+    from .telegram import run_bot
+    allowed = _env("TELEGRAM_ALLOWED_CHATS", required=False)
+    run_bot(_env("TELEGRAM_BOT_TOKEN"), [x.upper() for x in args.leagues], args.strategy_file,
+            set(allowed.split(",")) if allowed else None)
 
 
 def main(argv=None) -> None:
@@ -210,6 +229,19 @@ def main(argv=None) -> None:
     _add_strategy_args(p)
     p.add_argument("--fixtures", help="локальный fixtures.csv вместо скачивания")
     p.set_defaults(func=cmd_predict)
+
+    p = sub.add_parser("notify", help="отправить ставки или отчёт в Telegram")
+    p.add_argument("kind", choices=["tips", "report"])
+    p.add_argument("--leagues", nargs="+", default=["E0", "D1", "SP1", "I1", "F1"])
+    p.add_argument("--last", type=int, default=5, help="сезонов для отчёта")
+    p.add_argument("--strategy-file", default="strategy/best_strategy.json")
+    p.add_argument("--dry-run", action="store_true", help="только напечатать, не отправлять")
+    p.set_defaults(func=cmd_notify)
+
+    p = sub.add_parser("bot", help="интерактивный Telegram-бот (нужен сервер)")
+    p.add_argument("--leagues", nargs="+", default=["E0", "D1", "SP1", "I1", "F1"])
+    p.add_argument("--strategy-file", default="strategy/best_strategy.json")
+    p.set_defaults(func=cmd_bot)
 
     args = ap.parse_args(argv)
     args.func(args)
