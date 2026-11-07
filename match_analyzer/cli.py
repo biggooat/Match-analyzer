@@ -263,14 +263,14 @@ def main(argv=None) -> None:
 
     p = sub.add_parser("notify", help="отправить ставки или отчёт в Telegram")
     p.add_argument("kind", choices=["tips", "report"])
-    p.add_argument("--leagues", nargs="+", default=["E0", "D1", "SP1", "I1", "F1"])
+    p.add_argument("--leagues", nargs="+", default=list(data.LEAGUES))
     p.add_argument("--last", type=int, default=5, help="сезонов для отчёта")
     p.add_argument("--strategy-file", default="strategy/best_strategy.json")
     p.add_argument("--dry-run", action="store_true", help="только напечатать, не отправлять")
     p.set_defaults(func=cmd_notify)
 
     p = sub.add_parser("site", help="собрать веб-приложение")
-    p.add_argument("--leagues", nargs="+", default=["E0", "D1", "SP1", "I1", "F1"])
+    p.add_argument("--leagues", nargs="+", default=list(data.LEAGUES))
     p.add_argument("--strategy-file", default="strategy/best_strategy.json")
     p.add_argument("--out", default="_site")
     p.add_argument("--demo", action="store_true", help="демо-данные без интернета")
@@ -279,7 +279,7 @@ def main(argv=None) -> None:
     p.set_defaults(func=cmd_site)
 
     p = sub.add_parser("bot", help="интерактивный Telegram-бот (нужен сервер)")
-    p.add_argument("--leagues", nargs="+", default=["E0", "D1", "SP1", "I1", "F1"])
+    p.add_argument("--leagues", nargs="+", default=list(data.LEAGUES))
     p.add_argument("--strategy-file", default="strategy/best_strategy.json")
     p.set_defaults(func=cmd_bot)
 

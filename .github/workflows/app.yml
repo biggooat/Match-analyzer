@@ -25,14 +25,14 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  LEAGUES: ${{ vars.LEAGUES || 'E0 D1 SP1 I1 F1' }}
+  LEAGUES: ${{ vars.LEAGUES || 'E0 E1 E2 E3 SC0 SC1 D1 D2 SP1 SP2 I1 I2 F1 F2 N1 B1 P1 T1 G1' }}
   TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
   TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
 
