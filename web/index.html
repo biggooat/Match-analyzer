@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Match Analyzer</title>
+  <meta name="description" content="Value-ставки на футбол: прогнозы модели и проверенная стратегия">
+  <meta name="theme-color" content="#0f1720">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Матчи">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 7l4 3-1.5 4.5h-5L8 10z" fill="currentColor"/></svg>
+      <span>Match Analyzer</span>
+    </div>
+    <div class="updated" id="updated">загрузка…</div>
+  </header>
+
+  <nav class="tabs" role="tablist">
+    <button role="tab" data-tab="bets" aria-selected="true">Ставки</button>
+    <button role="tab" data-tab="all" aria-selected="false">Все матчи</button>
+    <button role="tab" data-tab="strategy" aria-selected="false">Стратегия</button>
+  </nav>
+
+  <div class="filters" id="filters"></div>
+
+  <main id="view"></main>
+
+  <footer class="foot">
+    Прогнозы — не гарантия. Ставьте только то, что готовы потерять.
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

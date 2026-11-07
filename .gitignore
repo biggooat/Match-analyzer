@@ -4,3 +4,4 @@ __pycache__/
 *.csv
 /best_strategy.json
 .venv/
+_site/

@@ -53,7 +53,7 @@ def build_selections(matches: pd.DataFrame, probs: pd.DataFrame,
            "O25": hg + ag >= 3, "U25": hg + ag <= 2}
 
     rows = []
-    base_cols = [c for c in ("date", "league", "season", "home", "away", "hg", "ag",
+    base_cols = [c for c in ("date", "time", "league", "season", "home", "away", "hg", "ag",
                              "xg_home", "xg_away", "min_games") if c in df.columns]
     for s in SELECTIONS:
         part = df[base_cols].copy()

@@ -39,3 +39,21 @@ def test_split_and_send(monkeypatch):
     telegram.send("T", 1, "\n".join(["x" * 100] * 100))
     assert len(calls) == 3 and all(len(p["text"]) <= telegram.LIMIT for _, p in calls)
     assert calls[0][1]["parse_mode"] == "HTML"
+
+
+def test_build_site(tmp_path):
+    import json as _json
+    import pandas as pd
+    from match_analyzer.webapp import build_site
+    m = make_league(n_seasons=2, seed=7)
+    last = m["date"].max()
+    fx = m[m["date"] == last].copy()
+    fx["time"] = "15:00"
+    out = tmp_path / "site"
+    payload = build_site(out, ["XX"], None, history=m[m["date"] < last], fixtures=fx)
+    assert (out / "index.html").exists() and (out / "app.js").exists()
+    saved = _json.loads((out / "data.json").read_text())
+    assert len(saved["matches"]) == 10 == len(payload["matches"])
+    mt = saved["matches"][0]
+    assert mt["time"] in ("18:00", "17:00")  # Лондон -> Москва
+    assert abs(sum(mt["p"][k] for k in ("H", "D", "A")) - 1) < 1e-3

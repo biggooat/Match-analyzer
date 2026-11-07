@@ -26,8 +26,8 @@ def load_strategy(path: str | Path | None, base: Strategy | None = None) -> tupl
     return replace(base, **kw), cfg
 
 
-def upcoming_bets(history: pd.DataFrame, fixtures: pd.DataFrame, strategy: Strategy) -> tuple[pd.DataFrame, int]:
-    """Возвращает (ставки, число проанализированных матчей)."""
+def analyze_fixtures(history: pd.DataFrame, fixtures: pd.DataFrame) -> pd.DataFrame:
+    """Вероятности модели и рынка по всем исходам ближайших матчей."""
     out = []
     for league, fx in fixtures.groupby("league"):
         hist = history[history["league"] == league]
@@ -37,9 +37,14 @@ def upcoming_bets(history: pd.DataFrame, fixtures: pd.DataFrame, strategy: Strat
         sel = build_selections(fx, predict_matches(model, fx))
         sel["won"] = float("nan")
         out.append(sel)
-    if not out:
+    return pd.concat(out, ignore_index=True) if out else pd.DataFrame()
+
+
+def upcoming_bets(history: pd.DataFrame, fixtures: pd.DataFrame, strategy: Strategy) -> tuple[pd.DataFrame, int]:
+    """Возвращает (ставки, число проанализированных матчей)."""
+    sel = analyze_fixtures(history, fixtures)
+    if sel.empty:
         return pd.DataFrame(), 0
-    sel = pd.concat(out, ignore_index=True)
     n = sel[["date", "home", "away"]].drop_duplicates().shape[0]
     return strategy.select(sel), n
 
@@ -108,6 +113,12 @@ def weekly_report(leagues: list[str], seasons: int, out_path: str | Path,
         strat = replace(strat, **{k: (tuple(v) if k == "markets" else v)
                                   for k, v in cfg.items() if k in strat.to_dict()})
         full = summarize(simulate(sel, strat))
+        cfg["stats"] = {"test_bets": int(best["test_bets"]), "test_roi": float(best["test_roi"]),
+                        "test_max_dd_units": float(best["test_max_dd_units"]),
+                        "bets": int(full["bets"]), "roi": float(full["roi"]),
+                        "hit_rate": float(full["hit_rate"]), "final_bank": float(full["final_bank"]),
+                        "max_dd_bank": float(full["max_dd_bank"]), "holdout_from": f"{holdout:%Y-%m-%d}",
+                        "leagues": list(leagues)}
         lines += [
             "<b>Лучшая стратегия</b>",
             f"Рынки: {', '.join(cfg['markets'])}; перевес ≥ {cfg['min_edge']:.0%}; "

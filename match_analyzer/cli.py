@@ -179,7 +179,8 @@ def _env(name: str, required: bool = True) -> str | None:
 def cmd_notify(args) -> None:
     """Разовая отправка в Telegram (для GitHub Actions по расписанию)."""
     from .telegram import send
-    token, chat = _env("TELEGRAM_BOT_TOKEN"), _env("TELEGRAM_CHAT_ID")
+    if not args.dry_run:
+        token, chat = _env("TELEGRAM_BOT_TOKEN"), _env("TELEGRAM_CHAT_ID")
     leagues = [x.upper() for x in args.leagues]
     if args.kind == "report":
         text = weekly_report(leagues, args.last, args.strategy_file)
@@ -191,6 +192,36 @@ def cmd_notify(args) -> None:
     if not args.dry_run:
         for c in chat.split(","):
             send(token, c.strip(), text)
+
+
+def cmd_site(args) -> None:
+    """Собирает веб-приложение (папка со страницей и свежим data.json)."""
+    from .webapp import build_site
+    leagues = [x.upper() for x in args.leagues]
+    history = fixtures = None
+    if args.demo:
+        from .synthetic import make_league
+        history = make_league(n_seasons=3)
+        days = sorted(history["date"].unique())[-2:]
+        fixtures = history[history["date"].isin(days)].copy()
+        history = history[history["date"] < days[0]]
+        today = pd.Timestamp.now().normalize()
+        fixtures["date"] = fixtures["date"].map({days[0]: today, days[1]: today + pd.Timedelta(days=1)})
+        fixtures["time"] = "19:30"
+        fixtures[["hg", "ag"]] = float("nan")
+    payload = build_site(args.out, leagues, args.strategy_file, history=history, fixtures=fixtures)
+    n_bets = sum(1 for m in payload["matches"] if m["bet"])
+    print(f"Приложение собрано в {args.out}: матчей {len(payload['matches'])}, ставок {n_bets}")
+    if args.telegram:
+        token, chat = os.environ.get("TELEGRAM_BOT_TOKEN"), os.environ.get("TELEGRAM_CHAT_ID")
+        if token and chat:
+            from .telegram import send
+            sel_bets = [m for m in payload["matches"] if m["bet"]]
+            text = f"⚽ Ставок на ближайшие матчи: {len(sel_bets)}"
+            if args.app_url:
+                text += f"\n{args.app_url}"
+            for c in chat.split(","):
+                send(token, c.strip(), text)
 
 
 def cmd_bot(args) -> None:
@@ -237,6 +268,15 @@ def main(argv=None) -> None:
     p.add_argument("--strategy-file", default="strategy/best_strategy.json")
     p.add_argument("--dry-run", action="store_true", help="только напечатать, не отправлять")
     p.set_defaults(func=cmd_notify)
+
+    p = sub.add_parser("site", help="собрать веб-приложение")
+    p.add_argument("--leagues", nargs="+", default=["E0", "D1", "SP1", "I1", "F1"])
+    p.add_argument("--strategy-file", default="strategy/best_strategy.json")
+    p.add_argument("--out", default="_site")
+    p.add_argument("--demo", action="store_true", help="демо-данные без интернета")
+    p.add_argument("--telegram", action="store_true", help="если заданы секреты — короткое уведомление")
+    p.add_argument("--app-url", help="ссылка на приложение для уведомления")
+    p.set_defaults(func=cmd_site)
 
     p = sub.add_parser("bot", help="интерактивный Telegram-бот (нужен сервер)")
     p.add_argument("--leagues", nargs="+", default=["E0", "D1", "SP1", "I1", "F1"])

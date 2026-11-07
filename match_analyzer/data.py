@@ -119,6 +119,7 @@ def normalize(raw: pd.DataFrame, season: str | None = None) -> pd.DataFrame:
     out["date"] = pd.to_datetime(raw["Date"], dayfirst=True, format="mixed", errors="coerce")
     out["league"] = raw.get("Div", pd.Series("", index=raw.index)).astype(str)
     out["season"] = season or ""
+    out["time"] = raw.get("Time", pd.Series("", index=raw.index)).fillna("").astype(str)
     out["home"] = raw["HomeTeam"].astype(str).str.strip()
     out["away"] = raw["AwayTeam"].astype(str).str.strip()
     out["hg"] = _first_column(raw, ["FTHG", "HG"])
