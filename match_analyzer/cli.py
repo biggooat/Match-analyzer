@@ -264,7 +264,7 @@ def main(argv=None) -> None:
     p = sub.add_parser("notify", help="отправить ставки или отчёт в Telegram")
     p.add_argument("kind", choices=["tips", "report"])
     p.add_argument("--leagues", nargs="+", default=list(data.LEAGUES))
-    p.add_argument("--last", type=int, default=5, help="сезонов для отчёта")
+    p.add_argument("--last", type=int, default=10, help="сезонов для отчёта")
     p.add_argument("--strategy-file", default="strategy/best_strategy.json")
     p.add_argument("--dry-run", action="store_true", help="только напечатать, не отправлять")
     p.set_defaults(func=cmd_notify)

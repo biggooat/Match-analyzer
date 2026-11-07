@@ -118,7 +118,7 @@ def weekly_report(leagues: list[str], seasons: int, out_path: str | Path,
                         "bets": int(full["bets"]), "roi": float(full["roi"]),
                         "hit_rate": float(full["hit_rate"]), "final_bank": float(full["final_bank"]),
                         "max_dd_bank": float(full["max_dd_bank"]), "holdout_from": f"{holdout:%Y-%m-%d}",
-                        "leagues": list(leagues)}
+                        "leagues": list(leagues), "seasons": seasons}
         lines += [
             "<b>Лучшая стратегия</b>",
             f"Рынки: {', '.join(cfg['markets'])}; перевес ≥ {cfg['min_edge']:.0%}; "

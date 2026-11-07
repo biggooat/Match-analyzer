@@ -26,6 +26,7 @@ concurrency:
 
 env:
   LEAGUES: ${{ vars.LEAGUES || 'E0 E1 E2 E3 SC0 SC1 D1 D2 SP1 SP2 I1 I2 F1 F2 N1 B1 P1 T1 G1' }}
+  SEASONS: ${{ vars.SEASONS || '10' }}
   TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
   TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
 
@@ -56,15 +57,17 @@ jobs:
           import json, os
           path = "strategy/best_strategy.json"
           cfg = json.load(open(path)) if os.path.exists(path) else {}
-          done = sorted(cfg.get("stats", {}).get("leagues", []))
-          print("report=" + ("true" if done != sorted(os.environ["LEAGUES"].split()) else "false"))
+          st = cfg.get("stats", {})
+          same = (sorted(st.get("leagues", [])) == sorted(os.environ["LEAGUES"].split())
+                  and str(st.get("seasons")) == os.environ["SEASONS"])
+          print("report=" + ("false" if same else "true"))
           PY
 
       - name: Перепроверить стратегию
         if: github.event.schedule == '13 4 * * 1' || inputs.report || steps.need.outputs.report == 'true'
         run: |
           if [ -n "$TELEGRAM_BOT_TOKEN" ]; then FLAG=""; else FLAG="--dry-run"; fi
-          python -m match_analyzer notify report --leagues $LEAGUES $FLAG
+          python -m match_analyzer notify report --leagues $LEAGUES --last $SEASONS $FLAG
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add strategy/best_strategy.json
