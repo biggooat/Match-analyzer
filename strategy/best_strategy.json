@@ -9,7 +9,7 @@
   "market_weight": 0.7,
   "min_prob": 0.0,
   "robust": false,
-  "updated": "2026-11-07",
+  "updated": "2026-11-09",
   "stats": {
     "test_bets": 96,
     "test_roi": 0.08291666666666665,
